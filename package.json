@@ -1,0 +1,26 @@
+{
+  "name": "captchaai",
+  "version": "1.0.0",
+  "main": "dist/index.js",
+  "repository": "https://github.com/furry/captchaai",
+  "author": "Furry <ender@thefluegges.com>",
+  "license": "MIT",
+  "type": "module",
+  "types": "dist/index.d.ts",
+  "scripts": {
+    "tsc": "tsc",
+    "mocha": "mocha",
+    "test": "yarn tsc && yarn mocha --parallel --timeout 900000"
+  },
+  "devDependencies": {
+    "@types/events": "^3.0.0",
+    "@types/node-fetch": "^2.6.2",
+    "chai": "^4.3.6",
+    "dotenv": "^16.0.3",
+    "mocha": "^10.1.0",
+    "typescript": "^4.8.4"
+  },
+  "dependencies": {
+    "node-fetch": "^3.2.10"
+  }
+}
