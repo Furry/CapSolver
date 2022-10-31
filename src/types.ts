@@ -8,21 +8,29 @@ export enum TaskType {
     RecaptchaV2 = "ReCaptchaV2TaskProxyLess"
 }
 
+
 export interface ErrorResponse {
     errorCode: string,
     errorDescription: string,
-    errorId: 1
+    errorId: 1,
+    taskId?: string
 }
 
-export interface SuccessResponse {
+export interface ReadyResponse {
     errorId: 0,
-    state: "ready" | "idle" | "processing" | "failed",
-    taskId?: string,
+    status: "ready",
+    taskId: string,
     solution: {
         text: string
     }
 }
+export interface SuccessResponse {
+    errorId: 0,
+    status: "idle" | "processing" | "failed",
+    taskId?: string,
+}
 
+export type Response = ErrorResponse | SuccessResponse | ReadyResponse;
 
 export interface CaptchaResult {
     data: string,
@@ -41,8 +49,6 @@ export interface PendingCaptchaStorage extends PendingCaptcha {
     reject: (error?: APIError) => void,
     promise: Promise<CaptchaResult>
 }
-
-export type Response = ErrorResponse | SuccessResponse;
 
 // Types unique for each solve request //
 export interface RecaptchaV2Options {

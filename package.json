@@ -10,7 +10,8 @@
   "scripts": {
     "tsc": "tsc",
     "mocha": "mocha",
-    "test": "yarn tsc && yarn mocha --parallel --timeout 900000"
+    "test": "yarn tsc && yarn mocha --parallel --timeout 900000",
+    "go": "tsc && node ./dist/index.js"
   },
   "devDependencies": {
     "@types/events": "^3.0.0",

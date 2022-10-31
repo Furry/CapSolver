@@ -1,14 +1,17 @@
-import { GenericObject, SolveResult, TaskType, Response, RecaptchaV2Options, PendingCaptchaStorage, PendingCaptcha, CaptchaResult } from "../types.js";
+import { GenericObject, SolveResult, TaskType, Response, RecaptchaV2Options, PendingCaptchaStorage, PendingCaptcha, CaptchaResult, ErrorResponse } from "../types.js";
 import fetch from "../utils/fetch.js";
-import { APIError } from "./CaptchaAIError.js";
+import { APIError, SolveError } from "./CaptchaAIError.js";
 
 export default class Solver {
     private token: string;
     private _pending: { [key: string]: PendingCaptchaStorage } = {};
-    private _interval: NodeJS.Timeout | null = null;
+    private _processing: boolean = false;
+    private _rates = 0;
+    private _pollInterval: number;
 
-    constructor(token: string) {
+    constructor(token: string, pollInterval: number = 1000) {
         this.token = token;
+        this._pollInterval = pollInterval;
     }
 
     private async createTask(taskType: TaskType, taskParams: GenericObject): Promise<CaptchaResult> {
@@ -25,14 +28,85 @@ export default class Solver {
             body: JSON.stringify(body),
         }).then((res) => res.json()) as Response;
 
-        if (response.errorId == 0 && response.state == "ready") {
-            return {
-                id: response.taskId ? response.taskId : null,
-                data: response.solution.text
-            }
+        if (response.errorId == 0) {
+            switch (response.status) {
+                case "ready":
+                    return {
+                        id: response.taskId ? response.taskId : null,
+                        data: response.solution.text
+                    }
+                case "idle":
+                case "processing":
+                    console.log("Returning poll entry")
+                    return this.registerPollEntry(response.taskId as string);
+                case "failed":
+                    console.log("failed i guess?")
+                default:
+                    console.log("Hit Default")
+                    return null as any;
+            } 
         } else {
             throw new APIError(response);
         }
+    }
+
+
+    private async getTaskResult(p: PendingCaptchaStorage) {
+        const body = {
+            clientKey: this.token,
+            taskId: p.id
+        };
+
+        const response = await fetch("https://api.captchaai.io/getTaskResult", {
+            method: "POST",
+            body: JSON.stringify(body)
+        }).then((r) => r.json()) as Response;
+
+        if (response.errorId == 0) {
+            console.log(response)
+            switch (response.status) {
+                case "ready":
+                    delete this._pending[p.id];
+                    return {
+                        id: response.taskId ? response.taskId : null,
+                        data: response.solution.text
+                    }
+                case "failed":
+                    delete this._pending[p.id];
+                    throw new SolveError(response as unknown as ErrorResponse);
+                case "idle":
+                case "processing":
+                default:
+                    // Pass
+            } 
+        } else {
+            delete this._pending[p.id];
+            throw new APIError(response);
+        }
+    }
+
+    private async getSolutions() {
+        this._rates++;
+
+        while (Object.keys(this._pending).length > 0) {
+            // Filter '_pending' by oldest.
+            let pending = Object.keys(this._pending).sort((a, b) => {
+                return this._pending[a].startTime - this._pending[b].startTime;
+            });
+
+            // Get the oldest pending captcha.
+            for (const c of pending) {
+                const captcha = this._pending[c];
+
+                // Increment the polls.
+                captcha.polls++;
+                await this.getTaskResult(captcha);
+                console.log("Sleeping..")
+                await new Promise((resolve) => setTimeout(resolve, this._pollInterval));
+            }
+        }
+
+        this._processing = false;
     }
 
     public async registerPollEntry(id: string): Promise<CaptchaResult> {
@@ -50,11 +124,13 @@ export default class Solver {
         // Add the promise to the pending cache.
         this._pending[id] = captchaPromiseObject;
 
-        if (!this._interval) {
-            this._interval = setInterval(() => {
-                this.getSolutions();
-            });
+        if (this._processing == false) {
+            this._processing = true;
+            this.getSolutions();
         }
+
+        console.log("Returning promise")
+        return captchaPromiseObject.promise;
     }
 
     public getPending(): PendingCaptcha[] {
@@ -76,7 +152,7 @@ export default class Solver {
     //////////////////////////////
     // START OF SOLVE FUNCTIONS //
     //////////////////////////////
-    public imageToText(image: String | Buffer): Promise<string> {
+    public imageToText(image: String | Buffer): Promise<CaptchaResult> {
         // If image is a buffer, convert it to a base64 string.
         if (image instanceof Buffer) {
             image = image.toString("base64");
