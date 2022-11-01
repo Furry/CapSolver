@@ -7,10 +7,10 @@ const { expect } = chai;
 
 dotenv.config();
 
-describe("imageToText Test", () => {
-    it("Should return a string containing the predicted characters.", async () => {
-        const solver = new CaptchaAI.Solver(process.env.APIKEY);
+describe("imageToText", () => {
+    const solver = new CaptchaAI.Solver(process.env.APIKEY);
 
+    it("Should return a string containing the predicted characters.", async () => {
         // Read the image as a base64 string from "./resources/textImage.png"
         const b64Image = fs.readFileSync("./test/resources/testImage.png", "base64");
         const bufferImage = Buffer.from(b64Image, "base64");

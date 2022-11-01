@@ -1,4 +1,4 @@
-import { GenericObject, SolveResult, TaskType, Response, RecaptchaV2Options, PendingCaptchaStorage, PendingCaptcha, CaptchaResult, ErrorResponse } from "../types.js";
+import { GenericObject, TaskType, Response, RecaptchaV2Options, PendingCaptchaStorage, PendingCaptcha, CaptchaResult, ErrorResponse, Status, ReadyResponse, RecaptchaEnterpriseOptions, RecaptchaV3Options } from "../types.js";
 import fetch from "../utils/fetch.js";
 import { APIError, SolveError } from "./CaptchaAIError.js";
 
@@ -29,20 +29,17 @@ export default class Solver {
         }).then((res) => res.json()) as Response;
 
         if (response.errorId == 0) {
-            switch (response.status) {
+            switch ((response.status ? response.status : (response as any).state) as Status) {
                 case "ready":
                     return {
                         id: response.taskId ? response.taskId : null,
-                        data: response.solution.text
+                        data: (response as ReadyResponse).solution.text
                     }
                 case "idle":
                 case "processing":
-                    console.log("Returning poll entry")
                     return this.registerPollEntry(response.taskId as string);
                 case "failed":
-                    console.log("failed i guess?")
                 default:
-                    console.log("Hit Default")
                     return null as any;
             } 
         } else {
@@ -63,7 +60,6 @@ export default class Solver {
         }).then((r) => r.json()) as Response;
 
         if (response.errorId == 0) {
-            console.log(response)
             switch (response.status) {
                 case "ready":
                     delete this._pending[p.id];
@@ -101,7 +97,6 @@ export default class Solver {
                 // Increment the polls.
                 captcha.polls++;
                 await this.getTaskResult(captcha);
-                console.log("Sleeping..")
                 await new Promise((resolve) => setTimeout(resolve, this._pollInterval));
             }
         }
@@ -129,10 +124,13 @@ export default class Solver {
             this.getSolutions();
         }
 
-        console.log("Returning promise")
         return captchaPromiseObject.promise;
     }
 
+    /**
+     * Gets all pending/outsanding captchas.
+     * @returns The current list of all unsolved captchas.
+     */
     public getPending(): PendingCaptcha[] {
         const pendingCache: PendingCaptcha[] = [];
 
@@ -150,8 +148,42 @@ export default class Solver {
     }
 
     //////////////////////////////
+    // START OF ACCOUNT METHODS //
+    //////////////////////////////
+
+    /**
+     * Gets the balance and package information of the account.
+     * @returns The current balance of the account & any packages.
+     */
+    public async getBalance() {
+        const body = {
+            clientKey: this.token
+        };
+
+        const response = await fetch("https://api.captchaai.io/getBalance", {
+            method: "POST",
+            body: JSON.stringify(body)
+        }).then((r) => r.json()) as Response;
+
+        if (response.errorId == 0) {
+            return {
+                balance: (response as any).balance,
+                packages: (response as any).packages
+            };
+        } else {
+            throw new APIError(response);
+        }
+    }
+
+    //////////////////////////////
     // START OF SOLVE FUNCTIONS //
     //////////////////////////////
+
+    /**
+     * Solves an image 
+     * @param image The image to solve in base64 or Buffer format.
+     * @returns CaptchaResult containing the solution text.
+     */
     public imageToText(image: String | Buffer): Promise<CaptchaResult> {
         // If image is a buffer, convert it to a base64 string.
         if (image instanceof Buffer) {
@@ -161,11 +193,68 @@ export default class Solver {
         return this.createTask(TaskType.ImageToText, { body: image });
     }
 
+    /**
+     * Solves a reCAPTCHA v2 with or without a proxy.
+     * @param websiteUrl The URL of the website where the reCAPTCHA is located.
+     * @param websiteKey The sitekey of the reCAPTCHA.
+     * @param options An object containing additional options, including proxy.
+     * @returns CaptchaResult containing the solution key.
+     * @throws {APIError}
+     */
     public async recaptchaV2(websiteUrl: string, websiteKey: string, options: RecaptchaV2Options = {}) {
-        return this.createTask(TaskType.RecaptchaV2, {
+        const body = {
             websiteURL: websiteUrl,
             websiteKey: websiteKey,
+            ...(options.proxy ? options.proxy : {}),
             ...options
-        })
+        }
+
+        
+        let type = TaskType.ReCaptchaV2;
+        if ((options as any).type == "enterprise") {
+            type = body.proxy ? TaskType.ReCaptchaV2EnterpriseProxied : TaskType.ReCaptchaV2Enterprise
+        } else {
+            type = body.proxy ? TaskType.ReCaptchaV2Proxied : TaskType.ReCaptchaV2;
+        }
+
+        delete body.proxy;
+
+        return this.createTask(type, body)
+    }
+
+    /**
+     * Solves a reCAPTCHA v2 Enterprise with or without a proxy.
+     * @param websiteUrl The URL of the website where the reCAPTCHA is located.
+     * @param websiteKey The sitekey of the reCAPTCHA.
+     * @param options An object containing additional options, including proxy & enterprise flags.
+     * @returns CaptchaResult containing the solution key.
+     * @throws {APIError}
+     */
+    public async recaptchaV2Enterprise(websiteUrl: string, websiteKey: string, options: RecaptchaEnterpriseOptions = {}) {
+        return this.recaptchaV2(websiteUrl, websiteKey, {
+            ...options,
+            type: "enterprise"
+        } as any);
+    }
+
+    /**
+     * Solves a reCAPTCHA v3 with or without a proxy.
+     * @param websiteUrl The URL of the website where the reCAPTCHA is located.
+     * @param websiteKey The sitekey of the reCAPTCHA.
+     * @param pageAction The action value in the widget.
+     * @param options An object containing additional options, including proxy & minScore.
+     * @returns CaptchaResult containing the solution key.
+     * @throws {APIError}
+     */
+    public async recaptchaV3(websiteUrl: string, websiteKey: string, pageAction: string, options: RecaptchaV3Options = {}) {
+        const body = {
+            websiteURL: websiteUrl,
+            websiteKey: websiteKey,
+            pageAction: pageAction,
+            ...(options.proxy ? options.proxy : {}),
+            ...options
+        }
+
+        return this.createTask(body.proxy ? TaskType.ReCaptchaV3Proxied : TaskType.ReCaptchaV3, body) 
     }
 }
