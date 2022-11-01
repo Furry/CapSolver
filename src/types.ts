@@ -14,6 +14,10 @@ export enum TaskType {
 
     ReCaptchaV3 = "ReCaptchaV3TaskProxyless",
     ReCaptchaV3Proxied = "ReCaptchaV3Task",
+
+    HCaptcha = "HCaptchaTaskProxyless",
+    HCaptchaProxied = "HCaptchaTask",
+    HCaptchaClassification = "HCaptchaClassification"
 }
 
 export interface ErrorResponse {
@@ -86,6 +90,14 @@ export interface RecaptchaV3Options {
     proxy?: ProxyOptions,
     userAgent?: string,
     cookies?: string
+}
+
+export interface HCaptchaOptions {
+    proxy?: ProxyOptions,
+    enterprisePayload?: GenericObject,
+    isEnterprise?: boolean,
+    isInvisible?: boolean,
+    userAgent?: string
 }
 
 export interface BalanceResult {

@@ -1,4 +1,4 @@
-import { GenericObject, TaskType, Response, RecaptchaV2Options, PendingCaptchaStorage, PendingCaptcha, CaptchaResult, ErrorResponse, Status, ReadyResponse, RecaptchaEnterpriseOptions, RecaptchaV3Options } from "../types.js";
+import { GenericObject, TaskType, Response, RecaptchaV2Options, PendingCaptchaStorage, PendingCaptcha, CaptchaResult, ErrorResponse, Status, ReadyResponse, RecaptchaEnterpriseOptions, RecaptchaV3Options, HCaptchaOptions } from "../types.js";
 import fetch from "../utils/fetch.js";
 import { APIError, SolveError } from "./CaptchaAIError.js";
 
@@ -199,7 +199,7 @@ export default class Solver {
      * @param websiteKey The sitekey of the reCAPTCHA.
      * @param options An object containing additional options, including proxy.
      * @returns CaptchaResult containing the solution key.
-     * @throws {APIError}
+     * @throws {SolveError}
      */
     public async recaptchaV2(websiteUrl: string, websiteKey: string, options: RecaptchaV2Options = {}) {
         const body = {
@@ -228,7 +228,7 @@ export default class Solver {
      * @param websiteKey The sitekey of the reCAPTCHA.
      * @param options An object containing additional options, including proxy & enterprise flags.
      * @returns CaptchaResult containing the solution key.
-     * @throws {APIError}
+     * @throws {SolveError}
      */
     public async recaptchaV2Enterprise(websiteUrl: string, websiteKey: string, options: RecaptchaEnterpriseOptions = {}) {
         return this.recaptchaV2(websiteUrl, websiteKey, {
@@ -244,7 +244,7 @@ export default class Solver {
      * @param pageAction The action value in the widget.
      * @param options An object containing additional options, including proxy & minScore.
      * @returns CaptchaResult containing the solution key.
-     * @throws {APIError}
+     * @throws {SolveError}
      */
     public async recaptchaV3(websiteUrl: string, websiteKey: string, pageAction: string, options: RecaptchaV3Options = {}) {
         const body = {
@@ -257,4 +257,43 @@ export default class Solver {
 
         return this.createTask(body.proxy ? TaskType.ReCaptchaV3Proxied : TaskType.ReCaptchaV3, body) 
     }
+
+    /**
+     * Solves a hCaptcha with or without a proxy.
+     * @param websiteUrl The URL of the website where the reCAPTCHA is located.
+     * @param websiteKey The sitekey of the hcaptcha
+     * @param options An object containing aditional options, including proxy.
+     * @returns CaptchaResult containing solution key.
+     * @throws {SolveError}
+     */
+    public async hcaptcha(websiteUrl: string, websiteKey: string, options: HCaptchaOptions) {
+        const body = {
+            websiteURL: websiteUrl,
+            websiteKey: websiteKey,
+            ...(options.proxy ? options.proxy : {}),
+            ...options
+        }
+
+        return this.createTask(body.proxy ? TaskType.HCaptchaProxied : TaskType.HCaptcha, body)
+    }
+
+    /**
+     * Classifies a list of images hcaptcha images to a given question.
+     * @param queries An array of base64 encoded images or buffers. 
+     * @param question The question to slove.
+     * @param coordinate If coordnates are required in the response.
+     * @returns CaptchaResult containing the response data.
+     * @throws {SolveError}
+     */
+    public async hcaptchaClassification(queries: (Buffer | string)[], question: string, coordinate = false) {
+        const body = {
+            queries: queries[0] instanceof Buffer ? queries.map((q) => q.toString("base64")) : queries,
+            question: question,
+            coordinate: coordinate
+        }
+
+        return this.createTask(TaskType.HCaptchaClassification, body)
+    }
+
+    
 }
