@@ -1,0 +1,11 @@
+# Dirs
+node_modules/
+src/
+test/
+
+# Files
+.env
+.gitignore
+readme.md
+tsconfig.json
+yarn.lock

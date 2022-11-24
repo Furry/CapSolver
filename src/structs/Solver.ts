@@ -1,6 +1,6 @@
 import { GenericObject, TaskType, Response, RecaptchaV2Options, PendingCaptchaStorage, PendingCaptcha, CaptchaResult, ErrorResponse, Status, ReadyResponse, RecaptchaEnterpriseOptions, RecaptchaV3Options, HCaptchaOptions } from "../types.js";
 import fetch from "../utils/fetch.js";
-import { APIError, SolveError } from "./CaptchaAIError.js";
+import { APIError, SolveError } from "./CapSolverError.js";
 
 export default class Solver {
     private token: string;
@@ -23,7 +23,7 @@ export default class Solver {
             }
         };
 
-        const response = await fetch("https://api.captchaai.io/createTask", {
+        const response = await fetch("https://api.capsolver.com/createTask", {
             method: "POST",
             body: JSON.stringify(body),
         }).then((res) => res.json()) as Response;
@@ -54,7 +54,7 @@ export default class Solver {
             taskId: p.id
         };
 
-        const response = await fetch("https://api.captchaai.io/getTaskResult", {
+        const response = await fetch("https://api.capsolver.com/getTaskResult", {
             method: "POST",
             body: JSON.stringify(body)
         }).then((r) => r.json()) as Response;
@@ -160,7 +160,7 @@ export default class Solver {
             clientKey: this.token
         };
 
-        const response = await fetch("https://api.captchaai.io/getBalance", {
+        const response = await fetch("https://api.capsolver.com/getBalance", {
             method: "POST",
             body: JSON.stringify(body)
         }).then((r) => r.json()) as Response;
@@ -294,6 +294,4 @@ export default class Solver {
 
         return this.createTask(TaskType.HCaptchaClassification, body)
     }
-
-    
 }

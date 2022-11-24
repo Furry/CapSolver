@@ -1,4 +1,4 @@
-import { APIError } from "./structs/CaptchaAIError.js";
+import { APIError } from "./structs/CapSolverError.js";
 
 export type SolveResult = { id: string, value: string };
 export type GenericObject = { [key: string]: any };

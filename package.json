@@ -1,8 +1,8 @@
 {
-  "name": "captchaai",
+  "name": "capsolver",
   "version": "1.0.0",
   "main": "dist/index.js",
-  "repository": "https://github.com/furry/captchaai",
+  "repository": "https://github.com/furry/capsolver",
   "author": "Furry <ender@thefluegges.com>",
   "license": "MIT",
   "type": "module",

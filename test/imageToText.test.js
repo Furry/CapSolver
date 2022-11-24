@@ -1,4 +1,4 @@
-import * as CaptchaAI from "../dist/index.js"
+import * as CapSolver from "../dist/index.js"
 import dotenv from "dotenv"
 import fs from "fs";
 import chai from "chai"
@@ -8,7 +8,7 @@ const { expect } = chai;
 dotenv.config();
 
 describe("imageToText", () => {
-    const solver = new CaptchaAI.Solver(process.env.APIKEY);
+    const solver = new CapSolver.Solver(process.env.APIKEY);
 
     it("Should return a string containing the predicted characters.", async () => {
         // Read the image as a base64 string from "./resources/textImage.png"

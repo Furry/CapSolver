@@ -1,14 +1,14 @@
-import * as CaptchaAI from "../dist/index.js"
+import * as CapSolver from "../dist/index.js"
 import dotenv from "dotenv"
 import chai from "chai"
-import { APIError } from "../dist/structs/CaptchaAIError.js";
+import { APIError } from "../dist/structs/CapSolverError.js";
 
 const { expect } = chai;
 
 dotenv.config();
 
 describe("recaptchaV2 Test", () => {
-    const solver = new CaptchaAI.Solver(process.env.APIKEY);
+    const solver = new CapSolver.Solver(process.env.APIKEY);
 
     it("Should return a recaptcha v2 solve string.", async () => {
         try {
