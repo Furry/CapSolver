@@ -8,6 +8,7 @@ export default class Solver {
     private _processing: boolean = false;
     private _rates = 0;
     private _pollInterval: number;
+    private _defaultPayload: GenericObject = { AppID: " " };
 
     constructor(token: string, pollInterval: number = 1000) {
         this.token = token;
@@ -19,7 +20,8 @@ export default class Solver {
             clientKey: this.token,
             task: {
                 type: taskType,
-                ...taskParams
+                ...taskParams,
+                ...this._defaultPayload
             }
         };
 
@@ -72,8 +74,7 @@ export default class Solver {
                     throw new SolveError(response as unknown as ErrorResponse);
                 case "idle":
                 case "processing":
-                default:
-                    // Pass
+                default: // Pass
             } 
         } else {
             delete this._pending[p.id];
