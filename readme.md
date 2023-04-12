@@ -15,6 +15,10 @@
 </center>
 
 <center>A wrapper around the <a href="https://capsolver.com/">CapSolver</a> API</center>
+<br>
+<br>
+
+If there's problems with this service, you can contact official support through [2captcha's Official Site](https://github.com/2captcha) or try [DeathByCaptcha's API](https://github.com/furry/DeathByCaptcha)
 
 ## Features
 - Promise Based API methods
